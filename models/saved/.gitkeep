@@ -1,0 +1,6 @@
+# Este directorio almacena los modelos entrenados persistidos en disco:
+#   - arima_model.pkl
+#   - lstm_autoencoder.keras
+#   - lstm_scaler.pkl
+#   - isolation_forest.pkl
+#   - if_scaler.pkl

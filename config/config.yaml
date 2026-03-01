@@ -1,0 +1,63 @@
+moodle:
+  host: "localhost"
+  port: 3306
+  database: "moodle"
+  user: "moodle_user"
+  password: "moodle_password"
+  log_table: "mdl_logstore_standard_log"
+  poll_interval_seconds: 10        # frecuencia de consulta en segundos
+
+redis:
+  host: "localhost"
+  port: 6379
+  stream_name: "moodle_logs"
+  consumer_group: "anomaly_detectors"
+  consumer_name: "detector_1"
+  max_len: 100000                  # maxima longitud del stream
+
+influxdb:
+  url: "http://localhost:8086"
+  token: "your-influxdb-token"    # reemplazar con el token generado en InfluxDB
+  org: "UCI"
+  bucket: "moodle_metrics"
+
+preprocessing:
+  aggregation_window_seconds: 60  # ventana de agregacion temporal
+  series_features:
+    - "request_count"
+    - "unique_users"
+    - "error_count"
+    - "avg_response_time"
+
+models:
+  arima:
+    order: [2, 1, 2]              # (p, d, q)
+    seasonal_order: [1, 1, 1, 24] # (P, D, Q, s) - estacionalidad de 24 periodos
+    retrain_interval_hours: 6
+  lstm:
+    sequence_length: 60           # ventana de 60 periodos anteriores
+    hidden_units: 64
+    dropout: 0.2
+    epochs: 20
+    batch_size: 32
+    retrain_interval_hours: 12
+  anomaly_detector:
+    contamination: 0.05           # proporcion esperada de anomalias (5%)
+    n_estimators: 100
+
+alerts:
+  cooldown_minutes: 5             # tiempo minimo entre alertas del mismo tipo
+  channels:
+    email:
+      enabled: false
+      smtp_host: "smtp.uci.cu"
+      smtp_port: 587
+      sender: "monitor@uci.cu"
+      recipients:
+        - "admin@uci.cu"
+    log:
+      enabled: true
+      file: "logs/alerts.log"
+
+academic_calendar:
+  file: "config/academic_calendar.json"

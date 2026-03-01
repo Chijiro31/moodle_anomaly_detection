@@ -1,0 +1,26 @@
+# ── Conexion a bases de datos ──────────────────────────────────────────────
+mysql-connector-python
+redis
+
+# ── Series temporales y modelado estadistico ───────────────────────────────
+statsmodels
+pmdarima
+
+# ── Deep Learning (LSTM) ───────────────────────────────────────────────────
+tensorflow
+
+# ── Aprendizaje automatico no supervisado ──────────────────────────────────
+scikit-learn
+
+# ── Manipulacion de datos ──────────────────────────────────────────────────
+numpy
+pandas
+
+# ── InfluxDB (Grafana datasource) ─────────────────────────────────────────
+influxdb-client
+
+# ── Configuracion ─────────────────────────────────────────────────────────
+pyyaml
+
+# ── Utilidades ────────────────────────────────────────────────────────────
+python-dateutil
