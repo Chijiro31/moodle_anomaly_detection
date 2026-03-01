@@ -1,0 +1,181 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "description": "Detección temprana de anomalías en Moodle UCI",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "📊 Tráfico en tiempo real",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "request_count" },
+            "properties": [{ "id": "displayName", "value": "Peticiones/min" }, { "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "unique_users" },
+            "properties": [{ "id": "displayName", "value": "Usuarios únicos" }, { "id": "color", "value": { "fixedColor": "#73BF69", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "error_count" },
+            "properties": [{ "id": "displayName", "value": "Errores" }, { "id": "color", "value": { "fixedColor": "#F2495C", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 1 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"moodle_traffic\")\n  |> filter(fn: (r) => r._field == \"request_count\" or r._field == \"unique_users\" or r._field == \"error_count\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Tráfico Moodle",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "#EAB839", "value": 0.5 }, { "color": "red", "value": 0.75 }] }, "unit": "percentunit", "min": 0, "max": 1 }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"final_score\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Score Anomalía (último)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "NORMAL", "color": "green" }, "1": { "text": "ANOMALÍA", "color": "red" } } }] }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"is_anomaly\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Estado del sistema",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 10,
+      "title": "🤖 Scores de modelos",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "percentunit", "min": 0, "max": 1 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "final_score" }, "properties": [{ "id": "displayName", "value": "Score Fusionado" }, { "id": "custom.lineWidth", "value": 3 }, { "id": "color", "value": { "fixedColor": "#FF780A", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "if_score" }, "properties": [{ "id": "displayName", "value": "Isolation Forest" }] },
+          { "matcher": { "id": "byName", "options": "lstm_recon_error" }, "properties": [{ "id": "displayName", "value": "LSTM Error Reconstrucción" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 11,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"final_score\" or r._field == \"if_score\" or r._field == \"lstm_recon_error\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Evolución de scores de anomalía",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "fillOpacity": 80, "lineWidth": 0 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "arima_anomaly" }, "properties": [{ "id": "displayName", "value": "ARIMA" }] },
+          { "matcher": { "id": "byName", "options": "lstm_anomaly" }, "properties": [{ "id": "displayName", "value": "LSTM" }] },
+          { "matcher": { "id": "byName", "options": "if_anomaly" }, "properties": [{ "id": "displayName", "value": "Isolation Forest" }] },
+          { "matcher": { "id": "byName", "options": "is_anomaly" }, "properties": [{ "id": "displayName", "value": "Fusión" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 12,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"arima_anomaly\" or r._field == \"lstm_anomaly\" or r._field == \"if_anomaly\" or r._field == \"is_anomaly\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Votos de detección por modelo",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 20,
+      "title": "🚨 Alertas",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "fillOpacity": 100, "lineWidth": 0, "spanNulls": false } }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "id": 21,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB-MOODLE}" },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"alerts\" and r._field == \"severity_level\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Alertas por severidad (1=LOW, 2=MEDIUM, 3=HIGH)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["moodle", "anomaly", "uci"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Moodle Anomaly Detection - UCI",
+  "uid": "moodle-anomaly-v1",
+  "version": 1
+}

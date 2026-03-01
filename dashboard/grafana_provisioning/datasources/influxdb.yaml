@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-Moodle
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: UCI
+      defaultBucket: moodle_metrics
+      tlsSkipVerify: true
+    secureJsonData:
+      token: moodle-influx-token-2024
+    isDefault: true
+    editable: true

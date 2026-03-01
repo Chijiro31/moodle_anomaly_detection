@@ -1,23 +1,33 @@
+# ─── Conexión al servidor Moodle real ──────────────────────────────────────
+# Reemplaza estos valores con los datos de tu servidor Moodle existente.
+# El usuario de DB debe tener permisos SELECT sobre mdl_logstore_standard_log.
 moodle:
-  host: "localhost"
+  host: "localhost"                # IP o FQDN del servidor MySQL de Moodle
   port: 3306
-  database: "moodle"
-  user: "moodle_user"
-  password: "moodle_password"
+  database: "moodle"              # nombre de la base de datos Moodle
+  user: "moodle_user"             # usuario MySQL (solo lectura es suficiente)
+  password: "moodle_password"     # contraseña del usuario MySQL
   log_table: "mdl_logstore_standard_log"
-  poll_interval_seconds: 10        # frecuencia de consulta en segundos
+  poll_interval_seconds: 10       # frecuencia de consulta en segundos
 
+# ─── Redis Streams (broker de mensajería) ──────────────────────────────────
+# Instalación con Docker: docker compose up -d redis
+# O instalación directa: https://redis.io/docs/getting-started/
 redis:
-  host: "localhost"
+  host: "localhost"               # IP del servidor Redis
   port: 6379
-  stream_name: "moodle_logs"
+  stream_name: "moodle_logs"      # stream de eventos crudos
   consumer_group: "anomaly_detectors"
   consumer_name: "detector_1"
-  max_len: 100000                  # maxima longitud del stream
+  max_len: 100000                 # máxima longitud del stream (descarte circular)
 
+# ─── InfluxDB + Grafana ────────────────────────────────────────────────────
+# Token por defecto del docker-compose.yml incluido.
+# Si usas InfluxDB externo, actualiza url y token.
+# Para generar un nuevo token: python scripts/setup_influxdb.py
 influxdb:
   url: "http://localhost:8086"
-  token: "your-influxdb-token"    # reemplazar con el token generado en InfluxDB
+  token: "moodle-influx-token-2024"   # token del docker-compose (cámbialo en producción)
   org: "UCI"
   bucket: "moodle_metrics"
 

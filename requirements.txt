@@ -1,26 +1,28 @@
-# ── Conexion a bases de datos ──────────────────────────────────────────────
-mysql-connector-python
-redis
+# ── Conexión a Moodle (MySQL) ──────────────────────────────────────────────
+mysql-connector-python>=8.3
 
-# ── Series temporales y modelado estadistico ───────────────────────────────
-statsmodels
-pmdarima
+# ── Redis Streams (broker de mensajería ligero) ────────────────────────────
+redis>=5.0
+
+# ── InfluxDB 2.x (Grafana datasource) ─────────────────────────────────────
+influxdb-client>=1.40
+
+# ── Series temporales y modelado estadístico (ARIMA) ──────────────────────
+statsmodels>=0.14
+pmdarima>=2.0,<2.1  # 2.1+ requiere numpy <2.0; instalar solo si numpy<2.0
 
 # ── Deep Learning (LSTM) ───────────────────────────────────────────────────
-tensorflow
+tensorflow>=2.17          # compatible con NumPy 2.x
 
-# ── Aprendizaje automatico no supervisado ──────────────────────────────────
-scikit-learn
+# ── Aprendizaje automático no supervisado (Isolation Forest) ───────────────
+scikit-learn>=1.4
 
-# ── Manipulacion de datos ──────────────────────────────────────────────────
-numpy
-pandas
+# ── Manipulación de datos ──────────────────────────────────────────────────
+numpy>=1.26
+pandas>=2.1
 
-# ── InfluxDB (Grafana datasource) ─────────────────────────────────────────
-influxdb-client
-
-# ── Configuracion ─────────────────────────────────────────────────────────
-pyyaml
+# ── Configuración ─────────────────────────────────────────────────────────
+pyyaml>=6.0
 
 # ── Utilidades ────────────────────────────────────────────────────────────
-python-dateutil
+python-dateutil>=2.9

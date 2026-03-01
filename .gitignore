@@ -179,3 +179,18 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# ── Moodle Anomaly Detection ──────────────────────────────────────────────
+# Modelos entrenados (binarios grandes, se regeneran al ejecutar)
+models/saved/*.pkl
+models/saved/*.h5
+models/saved/*.keras
+!models/saved/.gitkeep
+
+# Logs del sistema (se generan en ejecución)
+logs/*.log
+logs/*.csv
+!logs/.gitkeep
+
+# Datos de prueba generados
+tests/data/test_output.csv
