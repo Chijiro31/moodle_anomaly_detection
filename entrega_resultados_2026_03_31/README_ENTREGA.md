@@ -15,3 +15,5 @@ sin modificar ni eliminar archivos existentes del repositorio principal.
 - moodle_mock.sql
 - moodle_mock_bulk.sql
 - moodle_truncate.sql
+
+Reenvio confirmado: 2026-03-31 23:42:49
