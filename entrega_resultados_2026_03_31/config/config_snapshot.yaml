@@ -1,0 +1,73 @@
+# ─── Conexión al servidor Moodle real ──────────────────────────────────────
+# Reemplaza estos valores con los datos de tu servidor Moodle existente.
+# El usuario de DB debe tener permisos SELECT sobre mdl_logstore_standard_log.
+moodle:
+  host: "localhost"                # IP o FQDN del servidor MySQL de Moodle
+  port: 3406
+  database: "moodle"              # nombre de la base de datos Moodle
+  user: "root"             # usuario MySQL (solo lectura es suficiente)
+  password: "root"     # contraseña del usuario MySQL
+  log_table: "mdl_logstore_standard_log"
+  poll_interval_seconds: 10       # frecuencia de consulta en segundos
+
+# ─── Redis Streams (broker de mensajería) ──────────────────────────────────
+# Instalación con Docker: docker compose up -d redis
+# O instalación directa: https://redis.io/docs/getting-started/
+redis:
+  host: "localhost"               # IP del servidor Redis
+  port: 6379
+  stream_name: "moodle_logs"      # stream de eventos crudos
+  consumer_group: "anomaly_detectors"
+  consumer_name: "detector_1"
+  max_len: 100000                 # máxima longitud del stream (descarte circular)
+
+# ─── InfluxDB + Grafana ────────────────────────────────────────────────────
+# Token por defecto del docker-compose.yml incluido.
+# Si usas InfluxDB externo, actualiza url y token.
+# Para generar un nuevo token: python scripts/setup_influxdb.py
+influxdb:
+  url: "http://localhost:8086"
+  token: "moodle-influx-token-2024"   # token del docker-compose (cámbialo en producción)
+  org: "UCI"
+  bucket: "moodle_metrics"
+
+preprocessing:
+  aggregation_window_seconds: 60  # ventana de agregacion temporal
+  series_features:
+    - "request_count"
+    - "unique_users"
+    - "error_count"
+    - "avg_response_time"
+
+models:
+  arima:
+    order: [2, 1, 2]              # (p, d, q)
+    seasonal_order: [1, 1, 1, 24] # (P, D, Q, s) - estacionalidad de 24 periodos
+    retrain_interval_hours: 6
+  lstm:
+    sequence_length: 60           # ventana de 60 periodos anteriores
+    hidden_units: 64
+    dropout: 0.2
+    epochs: 20
+    batch_size: 32
+    retrain_interval_hours: 12
+  anomaly_detector:
+    contamination: 0.05           # proporcion esperada de anomalias (5%)
+    n_estimators: 100
+
+alerts:
+  cooldown_minutes: 5             # tiempo minimo entre alertas del mismo tipo
+  channels:
+    email:
+      enabled: false
+      smtp_host: "smtp.uci.cu"
+      smtp_port: 587
+      sender: "monitor@uci.cu"
+      recipients:
+        - "admin@uci.cu"
+    log:
+      enabled: true
+      file: "logs/alerts.log"
+
+academic_calendar:
+  file: "config/academic_calendar.json"
