@@ -280,15 +280,14 @@ Resultado del script `python scripts/check_connections.py`:
 
 ```
 [1/3] Redis (broker de mensajería)
-  ✘  Redis: conexión rechazada en localhost:6379 — servicio no iniciado
-
+  ✓ OK (v7.4.8)
 [2/3] Moodle MySQL Database
   ✘  Moodle DB: no conecta a localhost:3306 — apuntar a host real del servidor Moodle
 
 [3/3] InfluxDB (series temporales)
-  ✘  InfluxDB: conexión rechazada en localhost:8086 — servicio no iniciado
+  ✓ OK (v2.7.12, bucket moodle_metrics)
 
-Resultado: 0/3 servicios OK
+Resultado: 2/3 servicios OK
 ```
 
 Los servicios de infraestructura (Redis, InfluxDB, Grafana) deben iniciarse antes de ejecutar
