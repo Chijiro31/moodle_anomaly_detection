@@ -43,6 +43,7 @@ from models.arima_model      import ARIMAModel
 from models.lstm_model       import LSTMModel
 from models.anomaly_detector import AnomalyDetector
 from utils.config_loader     import load_config
+from dashboard.influx_writer import InfluxDBWriter
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -174,7 +175,12 @@ def run_pipeline(df: pd.DataFrame, config: dict, use_lstm: bool = True) -> pd.Da
             "true_anomaly":     row["true_anomaly"],
             # Por modelo
             "arima_anomaly":    arima_res.get("is_anomaly", False),
+            "arima_predicted": arima_res.get("predicted", 0),
+            "arima_lower":      arima_res.get("lower", 0),
+            "arima_upper":      arima_res.get("upper", 0),
             "lstm_anomaly":     lstm_res.get("is_anomaly", False),
+            "lstm_recon_error": lstm_res.get("reconstruction_error", 0),
+            "lstm_threshold":   lstm_res.get("threshold", 0),
             "if_anomaly":       iforest_res.get("is_anomaly", False),
             "if_score":         iforest_res.get("score", 0.0),
             # Fusion
@@ -273,6 +279,7 @@ def main():
     parser.add_argument("--samples",  type=int,  default=300, help="Numero de ventanas temporales a simular")
     parser.add_argument("--no-lstm",  action="store_true",    help="Omitir modelo LSTM (ejecucion mas rapida)")
     parser.add_argument("--output",   type=str,  default="logs/simulation_results.csv", help="Archivo CSV de salida")
+    parser.add_argument("--influx",   action="store_true",    help="Escribir resultados en InfluxDB")
     args = parser.parse_args()
 
     os.makedirs("logs",         exist_ok=True)
@@ -298,7 +305,51 @@ def main():
     results.to_csv(args.output, index=False, encoding="utf-8")
     logger.info("Resultados guardados en: %s", args.output)
 
-    # ── 4. Mostrar reporte ──────────────────────────────────────────────
+    # ── 4. Escribir en InfluxDB ──────────────────────────────────────────
+    if args.influx:
+        influx = InfluxDBWriter(config)
+        logger.info("Escribiendo resultados en InfluxDB...")
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        start_ts = now_ts - len(results) * 300  # 5 min intervals
+        for i, (_, row) in enumerate(results.iterrows()):
+            ts = start_ts + i * 300  # Use current time range, not simulation time
+            influx.write_traffic(ts, {
+                "request_count": row["request_count"],
+                "unique_users": row["unique_users"],
+                "error_count": row["error_count"],
+                "course_count": 5.0,
+            })
+            influx.write_scores(ts, {
+                "final_score": row["final_score"],
+                "is_anomaly": row["final_anomaly"],
+            }, {
+                "is_anomaly": row["arima_anomaly"],
+                "predicted": row["arima_predicted"],
+                "lower": row["arima_lower"],
+                "upper": row["arima_upper"],
+            }, {
+                "is_anomaly": row["lstm_anomaly"],
+                "reconstruction_error": row["lstm_recon_error"],
+                "threshold": row["lstm_threshold"],
+            }, {
+                "score": row["if_score"],
+                "is_anomaly": row["if_anomaly"],
+            })
+            if row["final_anomaly"] and not row["true_anomaly"]:
+                influx.write_alert({
+                    "timestamp": ts,
+                    "severity": "MEDIUM",
+                    "final_score": row["final_score"],
+                    "datetime": row["datetime"],
+                    "metrics": {
+                        "request_count": row["request_count"],
+                        "unique_users": row["unique_users"],
+                    }
+                })
+        influx.close()
+        logger.info("Resultados escritos en InfluxDB.")
+
+    # ── 5. Mostrar reporte ──────────────────────────────────────────────
     print_report(results)
 
 

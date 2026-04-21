@@ -46,7 +46,7 @@ class InfluxDBWriter:
         """Escribe el vector de metricas de trafico de la ventana temporal."""
         p = (
             Point("moodle_traffic")
-            .time(timestamp, WritePrecision.SECONDS)
+            .time(timestamp, WritePrecision.S)
             .field("request_count", float(point.get("request_count", 0)))
             .field("unique_users",  float(point.get("unique_users",  0)))
             .field("error_count",   float(point.get("error_count",   0)))
@@ -69,7 +69,7 @@ class InfluxDBWriter:
         """Escribe los scores individuales y el score fusionado."""
         p = (
             Point("anomaly_scores")
-            .time(timestamp, WritePrecision.SECONDS)
+            .time(timestamp, WritePrecision.S)
             .field("final_score",           float(fusion_result.get("final_score", 0)))
             .field("is_anomaly",            int(fusion_result.get("is_anomaly",    False)))
             .field("arima_anomaly",         int(arima_result.get("is_anomaly",     False)))
@@ -93,7 +93,7 @@ class InfluxDBWriter:
         severity_map = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
         p = (
             Point("alerts")
-            .time(alert["timestamp"], WritePrecision.SECONDS)
+            .time(alert["timestamp"], WritePrecision.S)
             .tag("severity", alert.get("severity", "LOW"))
             .field("severity_level", severity_map.get(alert.get("severity", "LOW"), 1))
             .field("final_score",    float(alert.get("final_score", 0)))

@@ -142,7 +142,7 @@ class AnomalyDetector:
         score = float(self._model.score_samples(X_scaled)[0])
         # score_samples devuelve valores negativos; mas negativo = mas anomalo
         # Normalizamos a [0, 1] donde 1 = mas anomalo
-        normalized = max(0.0, min(1.0, (-score - 0.1) / 0.5))
+        normalized = max(0.0, min(1.0, (-score - 0.3) / 0.3))
         is_anomaly = self._model.predict(X_scaled)[0] == -1
         return {
             "score":      normalized,
