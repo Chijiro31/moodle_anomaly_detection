@@ -4,7 +4,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Detecci\u00f3n temprana de anomal\u00edas en Moodle UCI",
+  "description": "Detección temprana de anomalías en Moodle UCI",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -20,7 +20,7 @@
         "y": 0
       },
       "id": 1,
-      "title": "\ud83d\udcca Tr\u00e1fico en tiempo real",
+      "title": "📊 Tráfico en tiempo real",
       "type": "row"
     },
     {
@@ -67,7 +67,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Usuarios \u00fanicos"
+                "value": "Usuarios únicos"
               },
               {
                 "id": "color",
@@ -125,7 +125,7 @@
           "refId": "A"
         }
       ],
-      "title": "Tr\u00e1fico Moodle",
+      "title": "Tráfico Moodle",
       "type": "timeseries"
     },
     {
@@ -187,7 +187,7 @@
           "refId": "A"
         }
       ],
-      "title": "Score Anomal\u00eda (\u00faltimo)",
+      "title": "Score Anomalía (último)",
       "type": "stat"
     },
     {
@@ -222,7 +222,7 @@
                   "color": "green"
                 },
                 "1": {
-                  "text": "ANOMAL\u00cdA",
+                  "text": "ANOMALÍA",
                   "color": "red"
                 }
               }
@@ -269,7 +269,7 @@
         "y": 9
       },
       "id": 10,
-      "title": "\ud83e\udd16 Scores de modelos",
+      "title": "🤖 Scores de modelos",
       "type": "row"
     },
     {
@@ -333,7 +333,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "LSTM Error Reconstrucci\u00f3n"
+                "value": "LSTM Error Reconstrucción"
               }
             ]
           }
@@ -365,7 +365,7 @@
           "refId": "A"
         }
       ],
-      "title": "Evoluci\u00f3n de scores de anomal\u00eda",
+      "title": "Evolución de scores de anomalía",
       "type": "timeseries"
     },
     {
@@ -428,7 +428,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Fusi\u00f3n"
+                "value": "Fusión"
               }
             ]
           }
@@ -460,7 +460,7 @@
           "refId": "A"
         }
       ],
-      "title": "Votos de detecci\u00f3n por modelo",
+      "title": "Votos de detección por modelo",
       "type": "timeseries"
     },
     {
@@ -472,7 +472,7 @@
         "y": 18
       },
       "id": 20,
-      "title": "\ud83d\udea8 Alertas",
+      "title": "🚨 Alertas",
       "type": "row"
     },
     {
@@ -956,6 +956,257 @@
       ],
       "title": "Alertas por severidad (1=LOW, 2=MEDIUM, 3=HIGH)",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 40,
+      "panels": [],
+      "title": "🔧 Redis Broker (Operacional)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 28
+      },
+      "id": 41,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "type": "command",
+          "command": "xlen",
+          "keyName": "moodle_logs",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Redis: longitud stream moodle_logs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 28
+      },
+      "id": 42,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "type": "command",
+          "command": "xlen",
+          "keyName": "moodle_timeseries",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Redis: longitud stream moodle_timeseries",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "none",
+          "noValue": "0"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
+      "id": 43,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "type": "command",
+          "command": "xpending",
+          "keyName": "moodle_logs",
+          "groupName": "anomaly_detectors",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Redis: backlog consumer group (pending)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 28
+      },
+      "id": 44,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "type": "command",
+          "command": "info",
+          "section": "memory",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Redis: memoria usada",
+      "type": "stat",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "used_memory"
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "refresh": "30s",
