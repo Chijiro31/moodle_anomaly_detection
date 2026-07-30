@@ -9,6 +9,7 @@ moodle:
   password: "moodle_password"     # contraseña del usuario MySQL
   log_table: "mdl_logstore_standard_log"
   poll_interval_seconds: 10       # frecuencia de consulta en segundos
+  extraction_mode: "polling"       # modo de extraccion: "polling" o "cdc_triggers"
 
 # ─── Redis Streams (broker de mensajería) ──────────────────────────────────
 # Instalación con Docker: docker compose up -d redis
@@ -55,19 +56,67 @@ models:
     contamination: 0.05           # proporcion esperada de anomalias (5%)
     n_estimators: 100
 
+# ─── Sistema de Alertas Activas ──────────────────────────────────────────────
 alerts:
   cooldown_minutes: 5             # tiempo minimo entre alertas del mismo tipo
   channels:
+    # Canal de email via SMTP
     email:
-      enabled: false
+      enabled: false              # cambiar a true para activar
       smtp_host: "smtp.uci.cu"
       smtp_port: 587
       sender: "monitor@uci.cu"
       recipients:
         - "admin@uci.cu"
+    # Canal de Webhook HTTP generico
+    webhook:
+      enabled: false             # cambiar a true para activar
+      url: "https://your-webhook-endpoint.com/alert"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer YOUR_TOKEN_HERE"
+    # Canal de Slack via Incoming Webhook
+    slack:
+      enabled: false             # cambiar a true para activar
+      webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    # Canal de log local
     log:
       enabled: true
       file: "logs/alerts.log"
+
+# ─── Detección de Concept Drift ───────────────────────────────────────────────
+drift_detection:
+  enabled: true                   # activar deteccion de concept drift
+  page_hinkley:
+    alpha: 0.5                    # decaying factor
+    threshold: 50                 # change threshold
+    delta: 0.005                 # drift magnitude
+  adwin:
+    enabled: true
+    widths: [30, 60, 100]        # window sizes para ADWIN
+
+# ─── API REST Server ────────────────────────────────────────────────────────
+api_server:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  auth:
+    user: "admin"
+    password: "admin"            # cambiar en produccion!
+    enabled: true
+
+# ─── Fusion Adaptativa ───────────────────────────────────────────────────────
+adaptive_fusion:
+  enabled: true                  # activar fusion adaptativa
+  min_weight: 0.1
+  max_weight: 2.0
+  performance_window: 100         # numero de detecciones para recalcular pesos
+  initial_weights:
+    isolation_forest: 1.0
+    arima: 0.8
+    lstm: 1.2
 
 academic_calendar:
   file: "config/academic_calendar.json"
