@@ -26,3 +26,6 @@ pyyaml>=6.0
 
 # ── Utilidades ────────────────────────────────────────────────────────────
 python-dateutil>=2.9
+
+# ── API REST (opcional, api/api_server.py) ─────────────────────────────────
+flask>=3.0

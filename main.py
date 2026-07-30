@@ -17,6 +17,7 @@ Flujo de datos:
   -> AnalyticsEngine -> InfluxDB -> Grafana
 """
 
+import json
 import logging
 import signal
 import sys
@@ -31,8 +32,10 @@ from preprocessing.preprocessor  import Preprocessor
 from models.arima_model          import ARIMAModel
 from models.lstm_model           import LSTMModel
 from models.anomaly_detector     import AnomalyDetector
+from models.adaptive_fusion      import AdaptiveFusion
 from alerts.alert_manager        import AlertManager
 from dashboard.influx_writer     import InfluxDBWriter
+from drift.concept_drift_detector import ConceptDriftDetector
 from utils.config_loader         import load_config
 
 # ------------------------------------------------------------------
@@ -63,6 +66,7 @@ class AnalyticsEngine:
     STREAM = "moodle_timeseries"
     GROUP  = "analytics_group"
     CONSUMER = "engine_1"
+    DRIFT_STATUS_KEY = "moodle:drift:status"
 
     def __init__(self, config: dict):
         self.cfg   = config
@@ -83,6 +87,27 @@ class AnalyticsEngine:
         # Subsistemas de alerta y visualizacion
         self.alert_mgr   = AlertManager(config)
         self.influx      = InfluxDBWriter(config)
+
+        # Fusion de modelos (RF6): variante adaptativa opcional, con pesos
+        # iniciales identicos a los validados en la simulacion offline.
+        fusion_cfg = config.get("adaptive_fusion", {})
+        self.adaptive_fusion = AdaptiveFusion(fusion_cfg) if fusion_cfg.get("enabled", False) else None
+
+        # Deteccion de concept drift (opcional): monitorea la desviacion
+        # entre la prediccion de ARIMA y el trafico real observado.
+        drift_cfg = config.get("drift_detection", {})
+        self.drift_enabled = drift_cfg.get("enabled", False)
+        if self.drift_enabled:
+            ph_cfg    = drift_cfg.get("page_hinkley", {})
+            adwin_cfg = drift_cfg.get("adwin", {})
+            self.drift_detector = ConceptDriftDetector({
+                "ph_alpha":     ph_cfg.get("alpha", 0.5),
+                "ph_threshold": ph_cfg.get("threshold", 50),
+                "ph_delta":     ph_cfg.get("delta", 0.005),
+                "adwin_width":  max(adwin_cfg.get("widths", [100])),
+                "page_hinkley": True,
+                "adwin":        adwin_cfg.get("enabled", True),
+            })
 
         # Intentar cargar modelos persistidos
         self.arima.load()
@@ -151,7 +176,10 @@ class AnalyticsEngine:
             if_result    = self.iforest.update(point)
 
             # --- RF6: Fusion de modelos ---
-            fusion       = AnomalyDetector.fuse(if_result, arima_result, lstm_result)
+            if self.adaptive_fusion:
+                fusion = self.adaptive_fusion.fuse(if_result, arima_result, lstm_result)
+            else:
+                fusion = AnomalyDetector.fuse(if_result, arima_result, lstm_result)
 
             # --- RF8: Escritura en InfluxDB ---
             self.influx.write_traffic(ts, point)
@@ -162,8 +190,24 @@ class AnalyticsEngine:
             if alert:
                 self.influx.write_alert(alert)
 
+            # --- Deteccion de concept drift (opcional) ---
+            if self.drift_enabled:
+                predicted = arima_result.get("predicted")
+                if predicted is not None:
+                    self.drift_detector.update(prediction=predicted, actual=point["request_count"])
+                self._publish_drift_status()
+
         except Exception as exc:
             logger.error("Error en procesamiento analitico: %s", exc, exc_info=True)
+
+    def _publish_drift_status(self):
+        """Publica el estado del detector de concept drift en Redis para
+        que el API server (proceso independiente) pueda consultarlo."""
+        try:
+            status = self.drift_detector.get_status()
+            self.redis_client.set(self.DRIFT_STATUS_KEY, json.dumps(status))
+        except Exception as exc:
+            logger.error("Error al publicar estado de drift: %s", exc)
 
 
 # ------------------------------------------------------------------

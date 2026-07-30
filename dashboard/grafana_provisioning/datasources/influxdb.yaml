@@ -3,6 +3,7 @@ apiVersion: 1
 datasources:
   - name: InfluxDB-Moodle
     type: influxdb
+    uid: PFEA697777BCBACF7
     access: proxy
     url: http://influxdb:8086
     jsonData:

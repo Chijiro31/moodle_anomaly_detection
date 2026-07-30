@@ -18,6 +18,7 @@ Endpoints:
     GET  /api/v1/drift/status - Estado del detector de concept drift
 """
 
+import json
 import logging
 import os
 import sys
@@ -52,7 +53,7 @@ _models_state = {
     "lstm": {"loaded": False, "last_retrain": None},
     "isolation_forest": {"loaded": False, "last_retrain": None},
 }
-_drift_detector = None
+DRIFT_STATUS_KEY = "moodle:drift:status"
 
 
 def get_influx_client():
@@ -65,21 +66,29 @@ def get_influx_client():
     )
 
 
-def init_drift_detector():
-    """Inicializa el detector de concept drift."""
-    global _drift_detector
-    if _drift_detector is None:
-        from alerting.concept_drift_detector import ConceptDriftDetector
-        _drift_detector = ConceptDriftDetector()
+def get_redis_client():
+    """Obtiene cliente Redis."""
+    import redis
+    return redis.Redis(
+        host=CONFIG["redis"]["host"],
+        port=CONFIG["redis"]["port"],
+        decode_responses=True,
+    )
 
 
 def require_auth(f):
-    """Decorator para autenticación básica."""
+    """Decorator para autenticación básica. Las credenciales por defecto
+    se leen de config.yaml (api_server.auth); las variables de entorno
+    API_USER/API_PASS, si estan definidas, tienen prioridad."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        auth_cfg = CONFIG.get("api_server", {}).get("auth", {})
+        if not auth_cfg.get("enabled", True):
+            return f(*args, **kwargs)
+
+        expected_user = os.environ.get("API_USER", auth_cfg.get("user", "admin"))
+        expected_pass = os.environ.get("API_PASS", auth_cfg.get("password", "admin"))
         auth = request.authorization
-        expected_user = os.environ.get("API_USER", "admin")
-        expected_pass = os.environ.get("API_PASS", "admin")
         if not auth or auth.username != expected_user or auth.password != expected_pass:
             return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
@@ -398,11 +407,30 @@ def trigger_retrain():
 @app.route("/api/v1/drift/status", methods=["GET"])
 @require_auth
 def drift_status():
-    """Retorna estado del detector de concept drift."""
-    init_drift_detector()
-    
-    status = _drift_detector.get_status()
-    return jsonify(status)
+    """
+    Retorna el estado del detector de concept drift.
+    El detector vive dentro del proceso principal (main.py / AnalyticsEngine),
+    que publica su estado en Redis en cada ciclo de analisis; esta API es un
+    proceso independiente y por tanto solo puede leer ese estado compartido,
+    no mantener su propia instancia (que siempre estaria vacia).
+    """
+    if not CONFIG.get("drift_detection", {}).get("enabled", False):
+        return jsonify({"error": "drift_detection deshabilitado en config.yaml"}), 404
+
+    try:
+        r = get_redis_client()
+        raw = r.get(DRIFT_STATUS_KEY)
+    except Exception as e:
+        logger.error(f"Error leyendo estado de drift desde Redis: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    if not raw:
+        return jsonify({
+            "drift_detected": False,
+            "note": "Aun no hay estado publicado; el motor analitico (main.py) no ha procesado ninguna ventana todavia.",
+        }), 200
+
+    return jsonify(json.loads(raw))
 
 
 # =============================================================================
@@ -424,8 +452,14 @@ def internal_error(e):
 # =============================================================================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
-    
-    logger.info(f"Starting Moodle Anomaly Detection API on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    api_cfg = CONFIG.get("api_server", {})
+    if not api_cfg.get("enabled", True):
+        logger.error("api_server.enabled es false en config.yaml. Saliendo.")
+        sys.exit(1)
+
+    host  = os.environ.get("API_HOST", api_cfg.get("host", "0.0.0.0"))
+    port  = int(os.environ.get("PORT", api_cfg.get("port", 5000)))
+    debug = os.environ.get("FLASK_DEBUG", str(api_cfg.get("debug", False))).lower() == "true"
+
+    logger.info(f"Starting Moodle Anomaly Detection API on {host}:{port}")
+    app.run(host=host, port=port, debug=debug)

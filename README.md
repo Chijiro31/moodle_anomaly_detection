@@ -144,6 +144,8 @@ python main.py
 | `python scripts/run_system.py --capture` | Solo captura de logs Moodle → Redis |
 | `python scripts/run_system.py --preprocess` | Solo preprocesador |
 | `python scripts/run_system.py --engine` | Solo motor analítico |
+| `python api/api_server.py` | API REST opcional (consulta de anomalías, estado de modelos y de concept drift) |
+| `python scripts/generate_thesis_figures.py` | Genera las figuras 18–22 usadas en el Capítulo III |
 
 ---
 
@@ -165,7 +167,7 @@ run.bat setup-influx # configurar InfluxDB por primera vez
 ## Panel Grafana
 
 Grafana se autoconfigura al iniciar via Docker Compose.  
-Accede en **http://localhost:3000** (admin / admin).
+Accede en **http://localhost:3100** (admin / admin).
 
 El dashboard **"Moodle Anomaly Detection - UCI"** incluye:
 - Tráfico en tiempo real (peticiones, usuarios únicos, errores)
@@ -189,10 +191,18 @@ moodle_anomaly_detection/
 ├── models/
 │   ├── arima_model.py                  # RF3: SARIMA
 │   ├── lstm_model.py                   # RF4: Autoencoder LSTM
-│   ├── anomaly_detector.py             # RF5+RF6: Isolation Forest + fusión
+│   ├── anomaly_detector.py             # RF5+RF6: Isolation Forest + fusión (validada, pesos fijos)
+│   ├── adaptive_fusion.py              # RF6 (extensión opcional): fusión con pesos ajustables
 │   └── saved/                          # Modelos persistidos
 ├── alerts/
-│   └── alert_manager.py                # RF7: Alertas adaptativas
+│   ├── alert_manager.py                # RF7: Alertas adaptativas por calendario académico
+│   └── channels.py                     # Canales adicionales: Webhook y Slack
+├── drift/
+│   └── concept_drift_detector.py       # Detección de concept drift (Page-Hinkley + ADWIN)
+├── api/
+│   └── api_server.py                   # API REST opcional (Flask) sobre InfluxDB/Redis
+├── extractors/
+│   └── real_time_extractor.py          # Extracción alternativa (polling / CDC triggers, ver limitaciones)
 ├── dashboard/
 │   ├── influx_writer.py                # RF8: Escritura InfluxDB
 │   ├── dashboards/

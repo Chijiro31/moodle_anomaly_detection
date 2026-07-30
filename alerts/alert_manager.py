@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from typing import Optional
 
+from alerts.channels import WebhookChannel, SlackChannel
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +42,11 @@ class AlertManager:
         cal_path = config["academic_calendar"]["file"]
         with open(cal_path, "r", encoding="utf-8") as f:
             self.calendar = json.load(f)
+
+        # Canales adicionales de notificacion multicanal (opcionales)
+        channels_cfg = self.alerts_cfg.get("channels", {})
+        self._webhook = WebhookChannel(channels_cfg.get("webhook", {}))
+        self._slack   = SlackChannel(channels_cfg.get("slack", {}))
 
         # Configurar log de alertas
         os.makedirs("logs", exist_ok=True)
@@ -171,6 +178,8 @@ class AlertManager:
 
         if self.alerts_cfg.get("channels", {}).get("email", {}).get("enabled", False):
             self._send_email(alert)
+        self._webhook.send(alert)
+        self._slack.send(alert)
 
     def _in_cooldown(self) -> bool:
         if self._last_alert is None:
