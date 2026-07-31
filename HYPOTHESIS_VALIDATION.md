@@ -277,7 +277,8 @@ El Hallazgo 3 asume que acumular más historial mejora la precisión automática
 Se puso a prueba esa suposición ejecutando el pipeline sobre una muestra sintética
 que reproduce el diseño de muestreo del capítulo de metodología (1.2M registros,
 estratificados por periodo académico/horario/tipo de usuario, partición 70/30,
-ver `tests/run_stratified_sampling_validation.py` y
+ver `tests/run_stratified_sampling_validation.py`, retirado del repositorio por
+limpieza de estructura pero disponible en el historial de git, y
 `LIMITATIONS_AND_FUTURE_WORK.md` §1.6). Resultado observado sobre 125 días
 representativos: **recall 38.0%, precision 5.58%** — muy por debajo del 93.3%/11.0%
 de la Tabla 10, no una mejora.
@@ -366,7 +367,8 @@ El sistema **sí contribuye a detección temprana de anomalías** porque:
 ## REFERENCIAS INTERNAS
 
 - **Datos de validación:** `entrega_resultados_2026_03_31/logs/thesis_validation_report.csv`
-- **Simulación:** `test_simulation.py` con 300 ventanas, 15 anomalías inyectadas
+- **Simulación:** `test_simulation.py` (retirado del repositorio por limpieza de
+  estructura; disponible en el historial de git) con 300 ventanas, 15 anomalías inyectadas
 - **Implementación:** Componentes en subdirectorios `models/`, `preprocessing/`, `alerts/`
 - **Configuración:** `config/config.yaml` con parámetros por modelo
 

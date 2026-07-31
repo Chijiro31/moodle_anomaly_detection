@@ -32,10 +32,11 @@ La sección "Muestreo" del capítulo de metodología define una población de 1,
 registros (enero 2019-diciembre 2020 y 2023-diciembre 2024), estratificada por periodo
 académico, horario y tipo de usuario, con asignación 70%/30% (840,000/360,000). Dado que
 no hay acceso a la base de datos real de Moodle UCI, se implementó
-`tests/run_stratified_sampling_validation.py`: un generador sintético que reproduce esa
-misma estratificación y tamaño (documentando las proporciones asumidas por estrato, ya
-que el texto original no las especifica), y se ejecutó el pipeline completo sobre 125
-días representativos (~1.26M peticiones agregadas, partición cronológica de
+`tests/run_stratified_sampling_validation.py` (script retirado del repositorio por
+limpieza de estructura; disponible en el historial de git): un generador sintético que
+reproduce esa misma estratificación y tamaño (documentando las proporciones asumidas
+por estrato, ya que el texto original no las especifica), y se ejecutó el pipeline
+completo sobre 125 días representativos (~1.26M peticiones agregadas, partición cronológica de
 2,100/900 ventanas ≈ 804,511/457,725 registros).
 
 **Resultado obtenido** (`logs/stratified_sampling_report.csv`):

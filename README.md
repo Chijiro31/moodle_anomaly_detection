@@ -145,7 +145,6 @@ python main.py
 | `python scripts/run_system.py --preprocess` | Solo preprocesador |
 | `python scripts/run_system.py --engine` | Solo motor analítico |
 | `python api/api_server.py` | API REST opcional (consulta de anomalías, estado de modelos y de concept drift) |
-| `python scripts/generate_thesis_figures.py` | Genera las figuras 18–22 usadas en el Capítulo III |
 
 ---
 
@@ -259,7 +258,12 @@ Entorno verificado: **Python 3.12.6**, **TensorFlow 2.20.0**, **numpy 2.2.6**, *
 
 ### Simulación offline — pipeline completo sin servicios externos
 
-Ejecutada con `python test_simulation.py --samples 300`:
+Resultado documentado de la validación offline (300 ventanas temporales, sin dependencias
+externas). El script que la generó (`test_simulation.py`) y su suite de pruebas asociada
+(`tests/`) se retiraron del repositorio por limpieza de estructura; el detalle completo de
+esta corrida queda preservado en `HYPOTHESIS_VALIDATION.md`, `ATAM_EVALUATION.md` y
+`entrega_resultados_2026_03_31/` (que sí conserva su propio script de validación,
+`entrega_resultados_2026_03_31/tests/run_thesis_validation.py`):
 
 ```
 Dataset: 300 ventanas temporales | Anomalías reales: 15 (5.0%)
@@ -276,13 +280,6 @@ Fusión ponderada (final)  0.110    0.933    0.197     14  113    1
 **La fusión detecta 14 de 15 anomalías (Recall = 93.3%)** con solo 300 muestras de entrenamiento
 inicial. Los falsos positivos disminuirán con historial real de Moodle, ya que los modelos
 ajustan sus umbrales de forma continua.
-
-> Para ejecutar la simulación:
-> ```bat
-> python test_simulation.py --samples 300
-> python test_simulation.py --no-lstm --samples 100   # modo rápido
-> ```
-> Los resultados se guardan en `logs/simulation_results.csv`.
 
 ### Verificación de servicios externos
 
