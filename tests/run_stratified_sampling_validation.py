@@ -89,6 +89,7 @@ from models.arima_model import ARIMAModel
 from models.lstm_model import LSTMModel
 from models.anomaly_detector import AnomalyDetector
 from preprocessing.preprocessor import ERROR_KEYWORDS  # reutilizado solo como referencia
+from dashboard.influx_writer import InfluxDBWriter
 
 # ═══════════════════════════════════════════════════════════════════════
 # 1. DEFINICION DE LA POBLACION Y EL MUESTREO ESTRATIFICADO
@@ -301,7 +302,10 @@ def generate_sample(n_windows: int, sample_size: int, seed: int = 42) -> list[di
 # 3. EJECUCION DEL PIPELINE (secuencial, orden cronologico)
 # ═══════════════════════════════════════════════════════════════════════
 
-def run_pipeline(windows: list[dict], config: dict, use_lstm: bool, split_index: int) -> dict:
+def run_pipeline(
+    windows: list[dict], config: dict, use_lstm: bool, split_index: int,
+    write_influx: bool = False,
+) -> dict:
     arima = ARIMAModel(config)
     lstm = LSTMModel(config) if use_lstm else None
     iforest = AnomalyDetector(config)
@@ -310,34 +314,61 @@ def run_pipeline(windows: list[dict], config: dict, use_lstm: bool, split_index:
     if lstm is not None:
         lstm._save = lambda: None
 
+    influx = InfluxDBWriter(config) if write_influx else None
+
+    # Si se escribe a InfluxDB, las marcas de tiempo se remapean para
+    # terminar en "ahora" (separadas 60s, la ventana de agregacion real),
+    # de forma que el dashboard de Grafana pueda mostrarlas sin tener que
+    # ajustar manualmente el rango a fechas de 2019/2023. El reloj interno
+    # no afecta a los modelos (ARIMA/LSTM/IF solo usan el orden de llegada,
+    # no el valor del timestamp), asi que este remapeo es seguro.
+    n = len(windows)
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    influx_start_ts = now_ts - (n - 1) * 60
     base_ts = int(datetime(2019, 1, 1, tzinfo=timezone.utc).timestamp())
+
     results = {"train": [], "validation": []}
 
-    for w in windows:
-        ts = base_ts + w["index"] * 60
-        point = {
-            "request_count": w["request_count"],
-            "unique_users": w["unique_users"],
-            "error_count": w["error_count"],
-            "course_count": w["course_count"],
-        }
+    try:
+        for w in windows:
+            ts = influx_start_ts + w["index"] * 60 if write_influx else base_ts + w["index"] * 60
+            point = {
+                "request_count": w["request_count"],
+                "unique_users": w["unique_users"],
+                "error_count": w["error_count"],
+                "course_count": w["course_count"],
+            }
 
-        arima_res = arima.update(ts, point["request_count"])
-        lstm_res = (
-            lstm.update(point) if lstm is not None
-            else {"is_anomaly": False, "reconstruction_error": 0.0, "threshold": None}
-        )
-        if_res = iforest.update(point)
-        fusion = AnomalyDetector.fuse(if_res, arima_res, lstm_res)
+            arima_res = arima.update(ts, point["request_count"])
+            lstm_res = (
+                lstm.update(point) if lstm is not None
+                else {"is_anomaly": False, "reconstruction_error": 0.0, "threshold": None}
+            )
+            if_res = iforest.update(point)
+            fusion = AnomalyDetector.fuse(if_res, arima_res, lstm_res)
 
-        segment = "train" if w["index"] < split_index else "validation"
-        results[segment].append({
-            "true_anomaly": w["true_anomaly"],
-            "predicted_anomaly": bool(fusion["is_anomaly"]),
-            "academic_period": w["academic_period"],
-            "horario": w["horario"],
-            "user_type": w["user_type"],
-        })
+            segment = "train" if w["index"] < split_index else "validation"
+            results[segment].append({
+                "true_anomaly": w["true_anomaly"],
+                "predicted_anomaly": bool(fusion["is_anomaly"]),
+                "academic_period": w["academic_period"],
+                "horario": w["horario"],
+                "user_type": w["user_type"],
+            })
+
+            if influx is not None:
+                influx.write_traffic(ts, point)
+                influx.write_scores(ts, fusion, arima_res, lstm_res, if_res)
+                if fusion.get("is_anomaly"):
+                    influx.write_alert({
+                        "timestamp": ts,
+                        "severity": "HIGH" if w["true_anomaly"] else "MEDIUM",
+                        "final_score": fusion.get("final_score", 0.0),
+                        "metrics": point,
+                    })
+    finally:
+        if influx is not None:
+            influx.close()
 
     return results
 
@@ -398,6 +429,8 @@ def main():
     parser.add_argument("--no-lstm", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=str, default="logs/stratified_sampling_report.csv")
+    parser.add_argument("--influx", action="store_true",
+                        help="Escribir trafico/scores/alertas en InfluxDB (para verlos en Grafana)")
     args = parser.parse_args()
 
     from utils.config_loader import load_config
@@ -435,7 +468,13 @@ def main():
         [{"user_type": w["user_type"]} for w in windows], "user_type"))
 
     print("\nEjecutando pipeline (orden cronologico, aprendizaje incremental)...")
-    results = run_pipeline(windows, config, use_lstm=not args.no_lstm, split_index=split_index)
+    if args.influx:
+        print(f"\nEscribiendo {args.windows:,} ventanas en InfluxDB "
+              f"(marcas de tiempo remapeadas a terminar en 'ahora')...")
+    results = run_pipeline(
+        windows, config, use_lstm=not args.no_lstm, split_index=split_index,
+        write_influx=args.influx,
+    )
     elapsed = time.perf_counter() - t0
 
     train_metrics = compute_metrics(results["train"])
