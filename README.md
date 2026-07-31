@@ -259,9 +259,10 @@ Entorno verificado: **Python 3.12.6**, **TensorFlow 2.20.0**, **numpy 2.2.6**, *
 ### Simulación offline — pipeline completo sin servicios externos
 
 Resultado documentado de la validación offline (300 ventanas temporales, sin dependencias
-externas). El script que la generó (`test_simulation.py`) y su suite de pruebas asociada
-(`tests/`) se retiraron del repositorio por limpieza de estructura; el detalle completo de
-esta corrida queda preservado en `HYPOTHESIS_VALIDATION.md`, `ATAM_EVALUATION.md` y
+externas). El script que la generó (`test_simulation.py`), su suite de pruebas asociada
+(`tests/`) y los documentos de análisis del Capítulo III (ATAM, validación de hipótesis,
+limitaciones) se retiraron del repositorio por limpieza de estructura; siguen disponibles
+en el historial de git. El detalle completo de esta corrida queda preservado en
 `entrega_resultados_2026_03_31/` (que sí conserva su propio script de validación,
 `entrega_resultados_2026_03_31/tests/run_thesis_validation.py`):
 
