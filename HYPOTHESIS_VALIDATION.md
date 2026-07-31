@@ -271,6 +271,30 @@ Con solo 300 muestras sintéticas iniciales, precision es baja (11%). Con **dato
 
 **Implicación:** Validación en producción UCI es crítica para confirmar viabilidad.
 
+#### Hallazgo 4: El Aprendizaje Continuo Asumido en el Hallazgo 3 No Ocurre en la Práctica Actual
+
+El Hallazgo 3 asume que acumular más historial mejora la precisión automáticamente.
+Se puso a prueba esa suposición ejecutando el pipeline sobre una muestra sintética
+que reproduce el diseño de muestreo del capítulo de metodología (1.2M registros,
+estratificados por periodo académico/horario/tipo de usuario, partición 70/30,
+ver `tests/run_stratified_sampling_validation.py` y
+`LIMITATIONS_AND_FUTURE_WORK.md` §1.6). Resultado observado sobre 125 días
+representativos: **recall 38.0%, precision 5.58%** — muy por debajo del 93.3%/11.0%
+de la Tabla 10, no una mejora.
+
+La causa: ARIMA y LSTM solo se reentrenan si transcurren 6h/12h de **reloj real**
+(`datetime.utcnow()`), no en función del volumen de datos ni del tiempo simulado.
+Al correr la simulación completa en minutos reales, ambos modelos se entrenan una
+sola vez y quedan congelados durante el resto de la ejecución, sin adaptarse a los
+cambios reales de contexto académico que sí atraviesa la muestra. Isolation Forest,
+que reentrena por conteo de muestras (cada 500) en vez de por reloj, es el único
+componente que sí se adapta.
+
+**Implicación:** el aprendizaje continuo que sustenta el Hallazgo 3 requiere que el
+disparador de reentrenamiento dependa del volumen de datos, no del reloj real; de lo
+contrario, "más historial acumulado" no se traduce en mejor desempeño. Se documenta
+como recomendación concreta en `LIMITATIONS_AND_FUTURE_WORK.md` §3.2.
+
 ### 5.4 Limitaciones de la Validación Actual
 
 Aunque los resultados experimental respaldan la hipótesis, reconocemos limitaciones:

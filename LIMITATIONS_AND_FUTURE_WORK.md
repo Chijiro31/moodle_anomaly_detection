@@ -26,6 +26,44 @@ El sistema dispone de integración con Moodle, Redis, InfluxDB y Grafana; sin em
 ### 1.5 Ausencia de evaluación sobre incidentes reales
 No se contó con un conjunto de ataques o anomalías reales confirmadas sobre el EVA Moodle de la UCI. En consecuencia, la evaluación se centró en anomalías simuladas y patrones sintéticos equivalentes, lo que limita la extrapolación directa de los resultados hacia eventos de seguridad reales.
 
+### 1.6 Degradación del desempeño a la escala poblacional especificada en el muestreo
+
+La sección "Muestreo" del capítulo de metodología define una población de 1,200,000
+registros (enero 2019-diciembre 2020 y 2023-diciembre 2024), estratificada por periodo
+académico, horario y tipo de usuario, con asignación 70%/30% (840,000/360,000). Dado que
+no hay acceso a la base de datos real de Moodle UCI, se implementó
+`tests/run_stratified_sampling_validation.py`: un generador sintético que reproduce esa
+misma estratificación y tamaño (documentando las proporciones asumidas por estrato, ya
+que el texto original no las especifica), y se ejecutó el pipeline completo sobre 125
+días representativos (~1.26M peticiones agregadas, partición cronológica de
+2,100/900 ventanas ≈ 804,511/457,725 registros).
+
+**Resultado obtenido** (`logs/stratified_sampling_report.csv`):
+
+| Segmento | Recall | Precision | F1 |
+|---|---|---|---|
+| Entrenamiento (70%) | 33.3% | 5.65% | 0.097 |
+| Validación (30%) | 47.1% | 5.48% | 0.098 |
+| Combinado | **38.0%** | **5.58%** | 0.097 |
+
+Esto contrasta fuertemente con la Tabla 10 (recall 93.3%, precisión 11.0%, sobre 300
+ventanas de un único contexto homogéneo). La caída no se debe a un error del generador
+(no hubo fallos de ejecución y las proporciones de estrato obtenidas quedaron cercanas a
+las asumidas), sino a una causa raíz identificada en el propio código de
+`models/arima_model.py` y `models/lstm_model.py`: el reentrenamiento de ARIMA y LSTM está
+condicionado a `datetime.utcnow()` (cada 6h/12h de **reloj real**), no al volumen de datos
+procesados ni al tiempo simulado. Como toda la simulación corre en minutos de reloj real,
+ambos modelos se entrenan una única vez al principio y permanecen congelados durante el
+resto de la corrida, sin adaptarse a los cambios de contexto académico (docencia normal →
+exámenes → matrículas) que sí atraviesa una muestra de 125 días. Solo Isolation Forest, que
+reentrena cada 500 muestras procesadas (no por reloj), se adapta progresivamente.
+
+Esto matiza el "Hallazgo 3: Importancia del Aprendizaje Continuo" de
+`HYPOTHESIS_VALIDATION.md` (que asumía que más datos acumulados mejorarían la precisión
+automáticamente): con la política de reentrenamiento actual, acumular más historial NO
+mejora el desempeño si ese historial nunca dispara un reentrenamiento real. Ver la
+recomendación asociada en la sección 3.2 de este documento.
+
 ## 2. Consideraciones metodológicas
 
 ### 2.1 Prioridad del recall sobre la precisión
@@ -52,6 +90,13 @@ Se recomienda realizar una búsqueda sistemática de parámetros sobre datos rea
 - redefinir la longitud de secuencia del LSTM
 - refinar la contaminación del Isolation Forest
 - recalibrar los pesos de la fusión ponderada
+- **cambiar el disparador de reentrenamiento de ARIMA y LSTM de tiempo real
+  (`datetime.utcnow()`, cada 6h/12h) a volumen de datos procesados**, siguiendo
+  el mismo criterio que ya usa Isolation Forest (cada 500 muestras). Esta es la
+  causa raíz identificada en la sección 1.6: al depender del reloj real, ambos
+  modelos quedan congelados en ejecuciones que corren mucho más rápido que el
+  tiempo simulado (como la validación estratificada de 125 días), impidiendo
+  la adaptación a cambios de contexto académico que sí ocurren en esos datos.
 
 ### 3.3 Mejora del mecanismo de alertas
 La gestión de alertas puede evolucionar hacia un sistema más completo que incluya:
