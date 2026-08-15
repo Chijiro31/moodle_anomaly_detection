@@ -1,0 +1,76 @@
+{
+  "periods": [
+    {
+      "name": "Inicio de semestre 1",
+      "start": "2025-09-01",
+      "end": "2025-09-14",
+      "type": "high_activity",
+      "multiplier": 1.5
+    },
+    {
+      "name": "Examenes parciales semestre 1",
+      "start": "2025-10-20",
+      "end": "2025-11-02",
+      "type": "high_activity",
+      "multiplier": 1.8
+    },
+    {
+      "name": "Examenes finales semestre 1",
+      "start": "2025-12-01",
+      "end": "2025-12-20",
+      "type": "high_activity",
+      "multiplier": 2.0
+    },
+    {
+      "name": "Receso navideo",
+      "start": "2025-12-21",
+      "end": "2026-01-05",
+      "type": "low_activity",
+      "multiplier": 0.3
+    },
+    {
+      "name": "Inicio de semestre 2",
+      "start": "2026-01-12",
+      "end": "2026-01-25",
+      "type": "high_activity",
+      "multiplier": 1.5
+    },
+    {
+      "name": "Examenes parciales semestre 2",
+      "start": "2026-03-09",
+      "end": "2026-03-22",
+      "type": "high_activity",
+      "multiplier": 1.8
+    },
+    {
+      "name": "Examenes finales semestre 2",
+      "start": "2026-05-11",
+      "end": "2026-05-30",
+      "type": "high_activity",
+      "multiplier": 2.0
+    },
+    {
+      "name": "Receso verano",
+      "start": "2026-06-01",
+      "end": "2026-08-31",
+      "type": "low_activity",
+      "multiplier": 0.2
+    }
+  ],
+  "weekly_pattern": {
+    "monday":    1.0,
+    "tuesday":   1.1,
+    "wednesday": 1.15,
+    "thursday":  1.1,
+    "friday":    0.9,
+    "saturday":  0.4,
+    "sunday":    0.2
+  },
+  "hourly_pattern": {
+    "0": 0.05, "1": 0.03, "2": 0.02, "3": 0.02, "4": 0.02,
+    "5": 0.03, "6": 0.05, "7": 0.15, "8": 0.50, "9": 0.80,
+    "10": 1.00, "11": 0.95, "12": 0.70, "13": 0.75, "14": 0.95,
+    "15": 1.00, "16": 0.90, "17": 0.85, "18": 0.80, "19": 0.70,
+    "20": 0.60, "21": 0.45, "22": 0.25, "23": 0.10
+  }
+}

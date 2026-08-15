@@ -1,0 +1,1466 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": {
+    "list": []
+  },
+  "description": "Detección temprana de anomalías en Moodle UCI",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "📊 Tráfico en tiempo real",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "request_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Peticiones/min"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#5794F2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unique_users"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Usuarios únicos"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73BF69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Errores"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2495C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"moodle_traffic\")\n  |> filter(fn: (r) => r._field == \"request_count\" or r._field == \"unique_users\" or r._field == \"error_count\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Tráfico Moodle",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.75
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"final_score\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Score Anomalía (último)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "text": "NORMAL"
+                },
+                "1": {
+                  "color": "red",
+                  "text": "ANOMALÍA"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"is_anomaly\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Estado del sistema",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 10,
+      "title": "🤖 Scores de modelos",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2
+          },
+          "max": 1,
+          "min": 0,
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "final_score"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Score Fusionado"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#FF780A",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "if_score"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Isolation Forest"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "lstm_recon_error"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "LSTM Error Reconstrucción"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "traffic = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"moodle_traffic\" and r._field == \"request_count\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\"])\n  |> rename(columns: {_value: \"request_count\"})\n\nscores = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"final_score\" or r._field == \"if_score\" or r._field == \"lstm_recon_error\" or r._field == \"lstm_threshold\" or r._field == \"arima_predicted\" or r._field == \"arima_upper\" or r._field == \"arima_lower\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n\njoin(tables: {t: traffic, s: scores}, on: [\"_time\"])\n  |> map(fn: (r) => {\n        half = if exists r.arima_upper and exists r.arima_lower and (r.arima_upper - r.arima_lower)/2.0 > 0.000001 then (r.arima_upper - r.arima_lower)/2.0 else 0.000001\n        dist = if exists r.arima_predicted then (if (r.request_count - r.arima_predicted) < 0.0 then -(r.request_count - r.arima_predicted) else (r.request_count - r.arima_predicted)) else 0.0\n        araw = (dist / half) / 2.0\n        aScore = if araw > 1.0 then 1.0 else araw\n        lraw = if exists r.lstm_recon_error and exists r.lstm_threshold and r.lstm_threshold > 0.0 then (r.lstm_recon_error / r.lstm_threshold) / 2.0 else 0.0\n        lScore = if lraw > 1.0 then 1.0 else lraw\n        return {\n          _time: r._time,\n          arima_score: aScore,\n          lstm_score: lScore,\n          if_score: if exists r.if_score then r.if_score else 0.0,\n          final_score: if exists r.final_score then r.final_score else 0.0\n        }\n     })\n  |> yield(name: \"scores\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Evolución de scores de anomalía (normalizados 0-1, comparables entre modelos)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "arima_anomaly"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ARIMA"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "lstm_anomaly"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "LSTM"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "if_anomaly"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Isolation Forest"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "is_anomaly"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Fusión"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"arima_anomaly\" or r._field == \"lstm_anomaly\" or r._field == \"if_anomaly\" or r._field == \"is_anomaly\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Votos de detección por modelo",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 20,
+      "title": "🚨 Alertas",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "purple",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"arima_predicted\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "ARIMA Predicted",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 700
+              },
+              {
+                "color": "red",
+                "value": 800
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 19
+      },
+      "id": 32,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"arima_upper\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "ARIMA Upper Bound",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 300
+              },
+              {
+                "color": "green",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 19
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"arima_lower\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "ARIMA Lower Bound",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 23
+      },
+      "id": 34,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"lstm_recon_error\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "LSTM Recon Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 23
+      },
+      "id": 35,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"lstm_threshold\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "LSTM Threshold",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 23
+      },
+      "id": 36,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"if_score\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Isolation Forest Score",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 0.75
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 23
+      },
+      "id": 37,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"anomaly_scores\" and r._field == \"final_score\") |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Fusion Score",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 100,
+            "lineWidth": 0,
+            "spanNulls": false
+          }
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"alerts\" and r._field == \"severity_level\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Alertas por severidad (1=LOW, 2=MEDIUM, 3=HIGH)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 40,
+      "panels": [],
+      "title": "🔧 Redis Broker (Operacional)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 28
+      },
+      "id": 41,
+      "options": {
+        "colorMode": "value",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "command": "xlen",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "keyName": "moodle_logs",
+          "refId": "A",
+          "type": "command"
+        }
+      ],
+      "title": "Redis: longitud stream moodle_logs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 28
+      },
+      "id": 42,
+      "options": {
+        "colorMode": "value",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "command": "xlen",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "keyName": "moodle_timeseries",
+          "refId": "A",
+          "type": "command"
+        }
+      ],
+      "title": "Redis: longitud stream moodle_timeseries",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
+      "id": 43,
+      "options": {
+        "colorMode": "value",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "command": "xpending",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "groupName": "anomaly_detectors",
+          "keyName": "moodle_logs",
+          "refId": "A",
+          "type": "command"
+        }
+      ],
+      "title": "Redis: backlog consumer group (pending)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "REDISMOODLEBR0KER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decbytes"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 28
+      },
+      "id": 44,
+      "options": {
+        "colorMode": "value",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "command": "info",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "REDISMOODLEBR0KER"
+          },
+          "refId": "A",
+          "section": "memory",
+          "type": "command"
+        }
+      ],
+      "title": "Redis: memoria usada",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "used_memory"
+              ]
+            }
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 50,
+      "title": "📋 Estado actual de los modelos (datos en vivo de esta sesión)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "decimals": 3,
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "modelo"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Modelo"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "precision"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Precision"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "recall"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Recall (Exhaustividad)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "f1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "F1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "TP"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tn"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "TN"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "FP"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fn"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "FN"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "id": 51,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "traffic = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"moodle_traffic\" and r._field == \"request_count\")\n  |> keep(columns: [\"_time\",\"_value\"])\n  |> rename(columns: {_value: \"request_count\"})\n  |> map(fn: (r) => ({r with request_count: float(v: r.request_count)}))\n\nscores = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"arima_anomaly\" or r._field == \"lstm_anomaly\" or r._field == \"if_anomaly\" or r._field == \"is_anomaly\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n\nperWindow = join(tables: {t: traffic, s: scores}, on: [\"_time\"])\n  |> map(fn: (r) => {\n        actual = if r.request_count > 50.0 then 1.0 else 0.0\n        arimaP = float(v: r.arima_anomaly)\n        lstmP = float(v: r.lstm_anomaly)\n        ifP = float(v: r.if_anomaly)\n        contP = float(v: r.is_anomaly)\n        binScore = (ifP * 1.0 + arimaP * 0.8 + lstmP * 1.2) / 3.0\n        binP = if binScore >= 0.5 then 1.0 else 0.0\n        return {\n          _time: r._time,\n          actual: actual,\n          arima: arimaP, lstm: lstmP, iforest: ifP, fbin: binP, fcont: contP\n        }\n     })\n\nreduceMetrics = (get, nombre) => perWindow\n  |> reduce(\n      identity: {tp: 0.0, fp: 0.0, fnv: 0.0, tn: 0.0},\n      fn: (r, accumulator) => {\n        pred = get(r: r)\n        return {\n          tp: accumulator.tp + (if pred == 1.0 and r.actual == 1.0 then 1.0 else 0.0),\n          fp: accumulator.fp + (if pred == 1.0 and r.actual == 0.0 then 1.0 else 0.0),\n          fnv: accumulator.fnv + (if pred == 0.0 and r.actual == 1.0 then 1.0 else 0.0),\n          tn: accumulator.tn + (if pred == 0.0 and r.actual == 0.0 then 1.0 else 0.0),\n        }\n      }\n  )\n  |> map(fn: (r) => {\n        precision = if (r.tp + r.fp) > 0.0 then r.tp / (r.tp + r.fp) else 0.0\n        recall = if (r.tp + r.fnv) > 0.0 then r.tp / (r.tp + r.fnv) else 0.0\n        f1 = if (precision + recall) > 0.0 then 2.0 * precision * recall / (precision + recall) else 0.0\n        return {modelo: nombre, tp: r.tp, fp: r.fp, fn: r.fnv, tn: r.tn, precision: precision, recall: recall, f1: f1}\n     })\n\nt_arima = reduceMetrics(get: (r) => r.arima, nombre: \"ARIMA\")\nt_lstm  = reduceMetrics(get: (r) => r.lstm, nombre: \"LSTM Autoencoder\")\nt_if    = reduceMetrics(get: (r) => r.iforest, nombre: \"Isolation Forest\")\nt_fbin  = reduceMetrics(get: (r) => r.fbin, nombre: \"Fusión ponderada binaria\")\nt_fcon  = reduceMetrics(get: (r) => r.fcont, nombre: \"Fusión por score continuo\")\n\ncombined = union(tables: [t_arima, t_lstm, t_if, t_fbin, t_fcon])\n\ncombined\n  |> keep(columns: [\"modelo\",\"precision\",\"recall\",\"f1\",\"tp\",\"tn\",\"fp\",\"fn\"])\n  |> yield(name: \"tabla12_table\")\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Tabla 12 en vivo — Precision/Recall/F1 (verdad de referencia: request_count > 50)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "PFEA697777BCBACF7"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "max": 1,
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "modelo"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Modelo"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "id": 52,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "xTickLabelRotation": -20
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "PFEA697777BCBACF7"
+          },
+          "query": "traffic = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"moodle_traffic\" and r._field == \"request_count\")\n  |> keep(columns: [\"_time\",\"_value\"])\n  |> rename(columns: {_value: \"request_count\"})\n  |> map(fn: (r) => ({r with request_count: float(v: r.request_count)}))\n\nscores = from(bucket: \"moodle_metrics\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"anomaly_scores\")\n  |> filter(fn: (r) => r._field == \"arima_anomaly\" or r._field == \"lstm_anomaly\" or r._field == \"if_anomaly\" or r._field == \"is_anomaly\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n\nperWindow = join(tables: {t: traffic, s: scores}, on: [\"_time\"])\n  |> map(fn: (r) => {\n        actual = if r.request_count > 50.0 then 1.0 else 0.0\n        arimaP = float(v: r.arima_anomaly)\n        lstmP = float(v: r.lstm_anomaly)\n        ifP = float(v: r.if_anomaly)\n        contP = float(v: r.is_anomaly)\n        binScore = (ifP * 1.0 + arimaP * 0.8 + lstmP * 1.2) / 3.0\n        binP = if binScore >= 0.5 then 1.0 else 0.0\n        return {\n          _time: r._time,\n          actual: actual,\n          arima: arimaP, lstm: lstmP, iforest: ifP, fbin: binP, fcont: contP\n        }\n     })\n\nreduceMetrics = (get, nombre) => perWindow\n  |> reduce(\n      identity: {tp: 0.0, fp: 0.0, fnv: 0.0, tn: 0.0},\n      fn: (r, accumulator) => {\n        pred = get(r: r)\n        return {\n          tp: accumulator.tp + (if pred == 1.0 and r.actual == 1.0 then 1.0 else 0.0),\n          fp: accumulator.fp + (if pred == 1.0 and r.actual == 0.0 then 1.0 else 0.0),\n          fnv: accumulator.fnv + (if pred == 0.0 and r.actual == 1.0 then 1.0 else 0.0),\n          tn: accumulator.tn + (if pred == 0.0 and r.actual == 0.0 then 1.0 else 0.0),\n        }\n      }\n  )\n  |> map(fn: (r) => {\n        precision = if (r.tp + r.fp) > 0.0 then r.tp / (r.tp + r.fp) else 0.0\n        recall = if (r.tp + r.fnv) > 0.0 then r.tp / (r.tp + r.fnv) else 0.0\n        f1 = if (precision + recall) > 0.0 then 2.0 * precision * recall / (precision + recall) else 0.0\n        return {modelo: nombre, tp: r.tp, fp: r.fp, fn: r.fnv, tn: r.tn, precision: precision, recall: recall, f1: f1}\n     })\n\nt_arima = reduceMetrics(get: (r) => r.arima, nombre: \"ARIMA\")\nt_lstm  = reduceMetrics(get: (r) => r.lstm, nombre: \"LSTM Autoencoder\")\nt_if    = reduceMetrics(get: (r) => r.iforest, nombre: \"Isolation Forest\")\nt_fbin  = reduceMetrics(get: (r) => r.fbin, nombre: \"Fusión ponderada binaria\")\nt_fcon  = reduceMetrics(get: (r) => r.fcont, nombre: \"Fusión por score continuo\")\n\ncombined = union(tables: [t_arima, t_lstm, t_if, t_fbin, t_fcon])\n\ncombined\n  |> keep(columns: [\"modelo\",\"precision\",\"recall\",\"f1\"])\n  |> yield(name: \"tabla12_bar\")\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Precision / Recall / F1 por modelo (en vivo)",
+      "type": "barchart"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "moodle",
+    "anomaly",
+    "uci"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-3d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Moodle Anomaly Detection - UCI",
+  "uid": "moodle-anomaly-v1",
+  "version": 11
+}

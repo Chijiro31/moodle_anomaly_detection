@@ -1,0 +1,17 @@
+apiVersion: 1
+
+# Datasource operativo del broker de mensajeria (Redis Streams).
+# No sustituye a InfluxDB para las metricas de deteccion de anomalias:
+# se usa unicamente para monitorear el estado del broker en si mismo
+# (longitud de los streams, backlog de los consumer groups), relevante
+# para el riesgo R1 del ATAM (dependencia de conectividad Moodle<->Redis).
+datasources:
+  - name: Redis-Broker
+    type: redis-datasource
+    uid: REDISMOODLEBR0KER
+    access: proxy
+    url: redis://redis:6379
+    jsonData:
+      client: standalone
+    isDefault: false
+    editable: true
