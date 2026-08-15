@@ -1,0 +1,31 @@
+# ── Conexión a Moodle (MySQL) ──────────────────────────────────────────────
+mysql-connector-python>=8.3
+
+# ── Redis Streams (broker de mensajería ligero) ────────────────────────────
+redis>=5.0
+
+# ── InfluxDB 2.x (Grafana datasource) ─────────────────────────────────────
+influxdb-client>=1.40
+
+# ── Series temporales y modelado estadístico (ARIMA) ──────────────────────
+statsmodels>=0.14
+pmdarima>=2.0,<2.1  # 2.1+ requiere numpy <2.0; instalar solo si numpy<2.0
+
+# ── Deep Learning (LSTM) ───────────────────────────────────────────────────
+tensorflow>=2.17          # compatible con NumPy 2.x
+
+# ── Aprendizaje automático no supervisado (Isolation Forest) ───────────────
+scikit-learn>=1.4
+
+# ── Manipulación de datos ──────────────────────────────────────────────────
+numpy>=1.26
+pandas>=2.1
+
+# ── Configuración ─────────────────────────────────────────────────────────
+pyyaml>=6.0
+
+# ── Utilidades ────────────────────────────────────────────────────────────
+python-dateutil>=2.9
+
+# ── API REST (opcional, api/api_server.py) ─────────────────────────────────
+flask>=3.0

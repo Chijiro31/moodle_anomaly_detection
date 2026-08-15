@@ -1,0 +1,97 @@
+# =============================================================================
+# docker-compose.yml
+# Infraestructura de soporte para el sistema de deteccion de anomalias Moodle
+#
+# Servicios:
+#   - Redis 7        : Broker de mensajeria (Redis Streams)
+#   - InfluxDB 2.x   : Base de datos de series temporales
+#   - Grafana        : Panel de visualizacion
+#
+# Uso:
+#   docker compose up -d
+#   docker compose down
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Redis - Broker de mensajeria ligero con Redis Streams
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: moodle_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # InfluxDB 2.x - Serie temporal para metricas y scores
+  # ---------------------------------------------------------------------------
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: moodle_influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
+      DOCKER_INFLUXDB_INIT_ORG: UCI
+      DOCKER_INFLUXDB_INIT_BUCKET: moodle_metrics
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: moodle-influx-token-2024
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Grafana - Dashboard de visualizacion
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: moodle_grafana
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/moodle_anomaly.json
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./dashboard/grafana_provisioning:/etc/grafana/provisioning
+      - ./dashboard/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  redis_data:
+  influxdb_data:
+  influxdb_config:
+  grafana_data:

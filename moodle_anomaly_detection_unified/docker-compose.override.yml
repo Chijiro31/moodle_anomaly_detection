@@ -1,0 +1,4 @@
+services:
+  grafana:
+    environment:
+      GF_INSTALL_PLUGINS: ""
